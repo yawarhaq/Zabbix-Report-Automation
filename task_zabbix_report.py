@@ -2,6 +2,8 @@ import requests
 import json
 import pandas as pd
 from datetime import datetime
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
 
 # Zabbix API details
 ZABBIX_URL = "http://<url>/api_jsonrpc.php"
@@ -86,7 +88,6 @@ def process_data(trend_data):
         "max": df["value_max"].max()
     }
 
-
 # Main Script
 def main():
     auth_token = authenticate()
@@ -94,11 +95,13 @@ def main():
     start_date = input("Enter start date (YYYY-MM-DD): ")
     end_date = input("Enter end date (YYYY-MM-DD): ")
     
-    # Convert dates to timestamps
-    time_from = int(datetime.strptime(start_date, "%Y-%m-%d").timestamp())
-    time_till = int(datetime.strptime(end_date, "%Y-%m-%d").timestamp())
-    
-    # Define key options for metrics
+    # Calculate the total number of days
+    start_datetime = datetime.strptime(start_date, "%Y-%m-%d")
+    end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
+    time_from = int(start_datetime.timestamp())
+    time_till = int(end_datetime.timestamp())
+    total_days = (end_datetime - start_datetime).days + 1  # Inclusive of start and end dates
+
     keys = {
         "CPU": ["system.cpu.util"],
         "Memory": ["vm.memory.util", "vm.memory.utilization"],
@@ -139,18 +142,32 @@ def main():
 
         results.append(row)
 
-    # Convert results to a DataFrame
     df = pd.DataFrame(results)
+    print(df)
 
-    # Set the columns order to match the original request
     column_order = ['Host ID', 'Hostname', 'IP Address', 'CPU Min', 'CPU Avg', 'CPU Max', 
                     'Memory Min', 'Memory Avg', 'Memory Max', 'Disk Min', 'Disk Avg', 'Disk Max']
     df = df[column_order]
 
-    # Save the final DataFrame to Excel
-    print(df)
-    df.to_excel("Zabbix_report.xlsx", index=False)
-    print("Report saved as 'Zabbix_report.xlsx'.")
+    # Create an Excel workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Zabbix Report"
+
+    # Add metadata at the top
+    ws.append(["Start Date", start_date])
+    ws.append(["End Date", end_date])
+    ws.append(["Total Days", total_days])
+    ws.append([])  # Blank row to separate metadata from the table
+
+    # Add the DataFrame to the worksheet
+    for row in dataframe_to_rows(df, index=False, header=True):
+        ws.append(row)
+
+    # Save the Excel file
+    report_file = "Zabbix_report.xlsx"
+    wb.save(report_file)
+    print(f"Report saved as '{report_file}'.")
     
 
 if __name__ == "__main__":
