@@ -22,6 +22,7 @@ Technologies Used:
 - Zabbix API: JSON-RPC API for interacting with the Zabbix monitoring system.
 - requests Library: For making HTTP POST requests to the Zabbix API.
 - pandas Library: For data manipulation and aggregation.
+- openpyxl: Implicitly used via Pandas for Excel file generation.
 - datetime Module: For handling date and time conversions.
 
 Contributing:
